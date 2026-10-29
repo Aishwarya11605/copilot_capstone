@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HabitFlow</title>
+  </head>
+  <body>
+    <main>
+      <h1>HabitFlow</h1>
+      <section aria-labelledby="privacy-heading">
+        <h2 id="privacy-heading">Your data stays local</h2>
+        <p>HabitFlow does not send your data to external services.</p>
+        <p>
+          Loopback hosting does not protect your data from others with access
+          to this device or your operating-system account.
+        </p>
+      </section>
+
+      {% if state.status == "error" %}
+      <section aria-labelledby="storage-error-heading" role="alert">
+        <h2 id="storage-error-heading">HabitFlow data is unavailable</h2>
+        <p>{{ state.message }}</p>
+      </section>
+      {% else %}
+      {% if form_error %}
+      <p role="alert">{{ form_error }}</p>
+      {% endif %}
+      {% if week_error %}
+      <p role="alert">{{ week_error }}</p>
+      {% endif %}
+      {% if state.data.habits %}
+      <section aria-labelledby="daily-progress-heading">
+        <h2 id="daily-progress-heading">Today's progress</h2>
+        <p>Completed active habits: {{ daily_progress.completed_active_habits }} of {{ daily_progress.active_habits }}</p>
+        {% if daily_progress.percentage is not none %}
+        <p>Daily completion: {{ daily_progress.percentage|round(1) }}%</p>
+        {% endif %}
+        {% if daily_progress.empty_progress %}
+        <p>There are no active habits to track today.</p>
+        {% endif %}
+      </section>
+      <section aria-labelledby="weekly-progress-heading">
+        <h2 id="weekly-progress-heading">
+          Weekly progress ({{ selected_week_start.isoformat() }} to {{ weekly_progress.week_end.isoformat() }})
+        </h2>
+        <p>Completed active habit-days: {{ weekly_progress.completed_active_habit_days }}</p>
+        <p>Eligible active habit-days: {{ weekly_progress.eligible_active_habit_days }}</p>
+        <p>Weekly completion: {{ weekly_progress.percentage|round(1) }}%</p>
+        <nav aria-label="Weekly progress navigation">
+          <a href="{{ url_for('index', week_start=previous_week_start.isoformat()) }}">Previous week</a>
+          {% if can_select_next_week %}
+          <a href="{{ url_for('index', week_start=next_week_start.isoformat()) }}">Next week</a>
+          {% else %}
+          <button type="button" disabled>Next week</button>
+          {% endif %}
+        </nav>
+      </section>
+      {% endif %}
+
+      <section aria-labelledby="habit-list-heading">
+        <h2 id="habit-list-heading">Your habits</h2>
+
+        {% if state.data.habits %}
+        <ul>
+          {% for habit in state.data.habits %}
+          <li>
+            {% if habit.habit_id in active_habit_ids %}
+            <p>Status: Active</p>
+            {% else %}
+            <p>Status: Inactive</p>
+            {% endif %}
+            <form method="post" action="{{ url_for('edit_habit', habit_id=habit.habit_id) }}">
+              <input type="hidden" name="week_start" value="{{ selected_week_start.isoformat() }}">
+              <label for="name-{{ habit.habit_id }}">Habit name</label>
+              <input
+                id="name-{{ habit.habit_id }}"
+                name="name"
+                type="text"
+                value="{{ edit_values.get(habit.habit_id, habit.name) }}"
+                required
+              >
+              <button type="submit">Save name</button>
+            </form>
+            <form method="post" action="{{ url_for('delete_habit', habit_id=habit.habit_id) }}">
+              <input type="hidden" name="week_start" value="{{ selected_week_start.isoformat() }}">
+              <label>
+                <input type="checkbox" name="confirmed" value="yes" required>
+                Confirm deletion of {{ habit.name }}
+              </label>
+              <button type="submit">Delete</button>
+              <button type="submit" name="cancel" value="yes" formnovalidate>
+                Cancel
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('change_habit_status', habit_id=habit.habit_id) }}">
+              <input type="hidden" name="week_start" value="{{ selected_week_start.isoformat() }}">
+              {% if habit.habit_id in active_habit_ids %}
+              <input type="hidden" name="is_active" value="false">
+              <button type="submit">Mark {{ habit.name }} inactive</button>
+              {% else %}
+              <input type="hidden" name="is_active" value="true">
+              <button type="submit">Reactivate {{ habit.name }}</button>
+              {% endif %}
+            </form>
+            {% if habit.habit_id in completed_today_ids %}
+            <form method="post" action="{{ url_for('undo_habit_completion', habit_id=habit.habit_id) }}">
+              <input type="hidden" name="week_start" value="{{ selected_week_start.isoformat() }}">
+              <button type="submit">Undo {{ habit.name }} completion for {{ today }}</button>
+            </form>
+            {% else %}
+            <form method="post" action="{{ url_for('complete_habit', habit_id=habit.habit_id) }}">
+              <input type="hidden" name="week_start" value="{{ selected_week_start.isoformat() }}">
+              <button type="submit">Mark {{ habit.name }} complete for {{ today }}</button>
+            </form>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>You don't have any habits yet. Create your first habit below.</p>
+        {% endif %}
+      </section>
+
+      <section aria-labelledby="create-habit-heading">
+        <h2 id="create-habit-heading">Create a habit</h2>
+        <form method="post" action="{{ url_for('create_habit') }}">
+          <input type="hidden" name="week_start" value="{{ selected_week_start.isoformat() }}">
+          <label for="new-habit-name">Habit name</label>
+          <input
+            id="new-habit-name"
+            name="name"
+            type="text"
+            value="{{ create_value|default('') }}"
+            required
+          >
+          <button type="submit">Create habit</button>
+        </form>
+      </section>
+      {% endif %}
+    </main>
+  </body>
+</html>
