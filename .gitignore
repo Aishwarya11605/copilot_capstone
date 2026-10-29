@@ -1,0 +1,33 @@
+﻿
+# GitHub configuration
+/.github/
+
+# Local MCP configuration
+.mcp.json
+
+# SDLC planning documents - keep local
+/architecture.md
+/design-review.md
+/impl-plan.md
+/requirements.md
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Test and coverage artifacts
+.coverage
+htmlcov/
